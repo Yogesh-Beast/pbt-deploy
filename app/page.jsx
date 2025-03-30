@@ -87,7 +87,7 @@ export default function Home() {
   </div>
  </section>
 
- <section className="py-20 bg-blue-500">
+ <section className="py-20" style={{ background: "linear-gradient(90deg, #07c8f9, #0d41e1)" }}>
   <div className="container mx-auto px-4 text-center"> 
     <h2 className="text-3xl font-bold text-center mb-4">Are You Ready to Manage Your Finances?</h2>
    <p className="text-blue-100 mb-8 max-w-2xl mx-auto">Join the thousands of users who are already handling their finances more wisely with our intelligent personal budget tracker.
