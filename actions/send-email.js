@@ -1,4 +1,4 @@
-"use server";
+ "use server";
 
 import { Resend } from "resend";
 
@@ -9,13 +9,13 @@ export async function sendEmail({ to, subject, react }) {
     const data = await resend.emails.send({
       from: "Finance App <onboarding@resend.dev>",
       to,
-      subject,
+      subject,         
       react,
-    });
-
+    });               
+        
     return { success: true, data };
   } catch (error) {
     console.error("Failed to send email:", error);
     return { success: false, error };
   }
-}
+}    
