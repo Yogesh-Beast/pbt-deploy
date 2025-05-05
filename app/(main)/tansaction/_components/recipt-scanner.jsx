@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import useFetch from "@/hooks/use-fetch";
 import { scanReceipt } from "@/actions/transaction";
 
-export function ReceiptScanner({ onScanComplete }) {
+export function ReceiptScanner({ onScanComplete, className = "" }) {
   const fileInputRef = useRef(null);
 
   const {
@@ -21,7 +21,6 @@ export function ReceiptScanner({ onScanComplete }) {
       toast.error("File size should be less than 5MB");
       return;
     }
-
     await scanReceiptFn(file);
   };
 
@@ -33,7 +32,7 @@ export function ReceiptScanner({ onScanComplete }) {
   }, [scanReceiptLoading, scannedData]);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className={`w-full ${className}`}>
       <input
         type="file"
         ref={fileInputRef}
@@ -48,7 +47,7 @@ export function ReceiptScanner({ onScanComplete }) {
       <Button
         type="button"
         variant="outline"
-        className="w-full h-10 bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 animate-gradient hover:opacity-90 transition-opacity text-white hover:text-white"
+        className="w-full h-10 bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 animate-gradient hover:opacity-90 transition-opacity text-white"
         onClick={() => fileInputRef.current?.click()}
         disabled={scanReceiptLoading}
       >
