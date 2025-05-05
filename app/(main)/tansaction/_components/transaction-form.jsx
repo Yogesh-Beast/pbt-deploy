@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
 import { ReceiptScanner } from "./recipt-scanner";
+import { PayslipUploader } from "@/components/PayslipUploader"; // Import the updated PayslipUploader
 import CreateAccountDrawer from "@/components/create-account-drawer";
 
 export function AddTransactionForm({
@@ -37,6 +38,9 @@ export function AddTransactionForm({
   editMode = false,
   initialData = null,
 }) {
+  // Add state to track payslip upload
+  const [isPayslipUploaded, setIsPayslipUploaded] = useState(false);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -44,13 +48,16 @@ export function AddTransactionForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, submitCount },
     watch,
     setValue,
     getValues,
     reset,
   } = useForm({
     resolver: zodResolver(transactionSchema),
+    // Validate only on submit so errors only display when the user submits the form.
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues:
       editMode && initialData
         ? {
@@ -81,6 +88,7 @@ export function AddTransactionForm({
     data: transactionResult,
   } = useFetch(editMode ? updateTransaction : createTransaction);
 
+  // Submit Handler
   const onSubmit = (data) => {
     const formData = {
       ...data,
@@ -94,6 +102,7 @@ export function AddTransactionForm({
     }
   };
 
+  // Receipt Scanner Callback
   const handleScanComplete = (scannedData) => {
     if (scannedData) {
       setValue("amount", scannedData.amount.toString());
@@ -105,6 +114,24 @@ export function AddTransactionForm({
         setValue("category", scannedData.category);
       }
       toast.success("Receipt scanned successfully");
+    }
+  };
+
+  // Payslip Uploader Callback: Force type to INCOME and category to "salary"
+  const handlePayslipScan = (scannedData) => {
+    if (scannedData) {
+      setValue("type", "INCOME");
+      setValue("amount", scannedData.amount.toString());
+      setValue("date", new Date(scannedData.date));
+      setValue(
+        "description",
+        scannedData.description ||
+          `Salary from ${scannedData.employerName || "Employer"}`
+      );
+      // Force the category to "salary"
+      setValue("category", "salary");
+      setIsPayslipUploaded(true); // Set this to true when payslip is uploaded
+      toast.success("Payslip scanned and form fields updated with Salary category!");
     }
   };
 
@@ -130,15 +157,25 @@ export function AddTransactionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Receipt Scanner - Only show in create mode */}
-      {!editMode && <ReceiptScanner onScanComplete={handleScanComplete} />}
+      {/* Document Upload Section: Only in Create Mode */}
+      {!editMode && (
+        <div className="space-y-4 w-full">
+          <p className="font-medium">Upload Document (optional):</p>
+          <div className="grid w-full grid-cols-2 gap-4">
+            <ReceiptScanner onScanComplete={handleScanComplete} />
+            <PayslipUploader onScanComplete={handlePayslipScan} />
+          </div>
+        </div>
+      )}
 
-      {/* Type */}
+      {/* Transaction Type */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
         <Select
+          value={type} // Add this line
           onValueChange={(value) => setValue("type", value)}
           defaultValue={type}
+          disabled={isPayslipUploaded} // Use the state to disable the select
         >
           <SelectTrigger>
             <SelectValue placeholder="Select type" />
@@ -148,7 +185,7 @@ export function AddTransactionForm({
             <SelectItem value="INCOME">Income</SelectItem>
           </SelectContent>
         </Select>
-        {errors.type && (
+        {errors.type && submitCount > 0 && (
           <p className="text-sm text-red-500">{errors.type.message}</p>
         )}
       </div>
@@ -163,7 +200,7 @@ export function AddTransactionForm({
             placeholder="0.00"
             {...register("amount")}
           />
-          {errors.amount && (
+          {errors.amount && submitCount > 0 && (
             <p className="text-sm text-red-500">{errors.amount.message}</p>
           )}
         </div>
@@ -193,7 +230,7 @@ export function AddTransactionForm({
               </CreateAccountDrawer>
             </SelectContent>
           </Select>
-          {errors.accountId && (
+          {errors.accountId && submitCount > 0 && (
             <p className="text-sm text-red-500">{errors.accountId.message}</p>
           )}
         </div>
@@ -217,7 +254,7 @@ export function AddTransactionForm({
             ))}
           </SelectContent>
         </Select>
-        {errors.category && (
+        {errors.category && submitCount > 0 && (
           <p className="text-sm text-red-500">{errors.category.message}</p>
         )}
       </div>
@@ -242,15 +279,15 @@ export function AddTransactionForm({
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(date) => setValue("date", date)}
-              disabled={(date) =>
-                date > new Date() || date < new Date("1900-01-01")
+              onSelect={(newDate) => setValue("date", newDate)}
+              disabled={(val) =>
+                val > new Date() || val < new Date("1900-01-01")
               }
               initialFocus
             />
           </PopoverContent>
         </Popover>
-        {errors.date && (
+        {errors.date && submitCount > 0 && (
           <p className="text-sm text-red-500">{errors.date.message}</p>
         )}
       </div>
@@ -259,7 +296,7 @@ export function AddTransactionForm({
       <div className="space-y-2">
         <label className="text-sm font-medium">Description</label>
         <Input placeholder="Enter description" {...register("description")} />
-        {errors.description && (
+        {errors.description && submitCount > 0 && (
           <p className="text-sm text-red-500">{errors.description.message}</p>
         )}
       </div>
@@ -296,7 +333,7 @@ export function AddTransactionForm({
               <SelectItem value="YEARLY">Yearly</SelectItem>
             </SelectContent>
           </Select>
-          {errors.recurringInterval && (
+          {errors.recurringInterval && submitCount > 0 && (
             <p className="text-sm text-red-500">
               {errors.recurringInterval.message}
             </p>
